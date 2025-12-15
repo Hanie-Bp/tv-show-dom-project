@@ -17,6 +17,7 @@ const selectedElement = (query) => {
 };
 
 const parent = selectedElement(".parent");
+const showInfoBox = selectedElement(".show-info");
 
 //////generate season and ep
 
@@ -38,7 +39,7 @@ function create(name, season, number, image, summary, url, id) {
     "opacity-summary",
   ]);
   const divSummary = createElement("div", ["position-absolute", "summary"]);
-  divSummary.innerHTML += summary;
+  divSummary.innerHTML += summary || "No summary available.";
   const img = createElement("img", ["card", "img-ep"]);
   const linkDiv = createElement("a", ["text-white", "icon-container", "mt-4"]);
   linkDiv.innerHTML = `<i class="bi bi-play-circle  p-2 fs-4 icon  text-info"></i>`;
@@ -64,7 +65,9 @@ function create(name, season, number, image, summary, url, id) {
   );
   linkDiv.href = url;
   card.name = `${name}`;
-  img.src = `${image.medium}`;
+  const poster = image?.medium || "";
+  img.src = poster;
+  img.alt = `${name} poster`;
   headingInCard.innerText = generateSeasonAndEp(season, number, name);
   const option = createElement("option", ["op"]);
   option.innerText = generateSeasonAndEp(season, number, name);
@@ -78,12 +81,23 @@ function create(name, season, number, image, summary, url, id) {
 
 const displayEpisodes = async (showId) => {
   try {
-    const { data } = await axios.get(
-      `https://api.tvmaze.com/shows/${showId}/episodes`
-    );
-    for (const { name, season, number, image, summary, url, id } of data) {
+    const [episodesRes, showRes, seasonsRes, castRes] = await Promise.all([
+      axios.get(`https://api.tvmaze.com/shows/${showId}/episodes`),
+      axios.get(`https://api.tvmaze.com/shows/${showId}`),
+      axios.get(`https://api.tvmaze.com/shows/${showId}/seasons`),
+      axios.get(`https://api.tvmaze.com/shows/${showId}/cast`),
+    ]);
+
+    const episodes = episodesRes.data || [];
+    const show = showRes.data || {};
+    const seasons = seasonsRes.data || [];
+    const cast = castRes.data || [];
+
+    for (const { name, season, number, image, summary, url, id } of episodes) {
       create(name, season, number, image, summary, url, id);
     }
+
+    renderShowInfo(show, seasons, cast, episodes);
 
     const cards = document.querySelectorAll(".parent-card");
     select.addEventListener("change", function () {
@@ -103,6 +117,58 @@ const displayEpisodes = async (showId) => {
     displayEpisodes(showId);
   }
 };
+
+function renderShowInfo(show, seasons, cast, episodes) {
+  if (!showInfoBox) return;
+
+  const seasonCount = seasons.length || "N/A";
+  const episodesBySeason = episodes.reduce((acc, ep) => {
+    acc[ep.season] = (acc[ep.season] || 0) + 1;
+    return acc;
+  }, {});
+
+  const castList = (cast || []).slice(0, 6).map(({ person, character }) => {
+    const actor = person?.name || "Unknown";
+    const role = character?.name ? ` as ${character.name}` : "";
+    return `${actor}${role}`;
+  });
+
+  const rating = show?.rating?.average ?? "N/A";
+  const premiered = show?.premiered ?? "N/A";
+  const ended = show?.ended ? ` | Ended: ${show.ended}` : "";
+
+  showInfoBox.innerHTML = `
+    <h5 class="fw-bold mb-3 text-info">${show?.name || "Show details"}</h5>
+    <p class="mb-1"><span class="text-info">Rating:</span> <strong>${rating}</strong></p>
+    <p class="mb-1"><span class="text-info">Premiered:</span> ${premiered}${ended}</p>
+    <p class="mb-2"><span class="text-info">Seasons:</span> ${seasonCount}</p>
+    <div class="mb-2">
+      <div class="small fw-bold"><span class="text-info">Episodes per season:</span></div>
+      <ul class="list-unstyled mb-2">
+        ${
+          Object.keys(episodesBySeason).length
+            ? Object.entries(episodesBySeason)
+                .map(
+                  ([season, count]) =>
+                    `<li>Season ${season}: ${count} episodes</li>`
+                )
+                .join("")
+            : "<li>No data</li>"
+        }
+      </ul>
+    </div>
+    <div>
+      <div class="small fw-bold"><span class="text-info">Cast:</span></div>
+      <ul class="list-unstyled mb-0">
+        ${
+          castList.length
+            ? castList.map((item) => `<li>${item}</li>`).join("")
+            : "<li>No cast info</li>"
+        }
+      </ul>
+    </div>
+  `;
+}
 
 /////get id
 const getData = async () => {

@@ -10,7 +10,9 @@ const getData = async () => {
 };
 
 getData().then((data) => {
+  if (!data) return;
   localStorage.setItem("data", JSON.stringify(data));
+  loadInitailItems();
 });
 
 //create element function
@@ -34,9 +36,22 @@ const selectedElement = (query) => {
 //////////////////////
 const parent = selectedElement(".parent");
 const loadMoreButton = selectedElement("#load-more");
+const trendingLink = selectedElement("#trending-link");
 
 let initialItems = 12;
 let loadItems = 12;
+
+const getStoredShows = () => {
+  const storedData = localStorage.getItem("data");
+  if (!storedData) return [];
+  try {
+    const parsed = JSON.parse(storedData);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Failed to parse stored shows", error);
+    return [];
+  }
+};
 
 //////////create function
 function create(name, genres, rating, image, id) {
@@ -55,16 +70,20 @@ function create(name, genres, rating, image, id) {
     [img, boxDiv]
   );
   card.id = id;
-  img.src = `${image.medium}`;
+  const poster = image?.medium || "";
+  img.src = poster;
+  img.alt = `${name} poster`;
   headingInCard.innerText = `${name}`;
   para1.innerText = genres.join("|");
-  para2.innerText = rating.average;
+  para2.innerText = rating?.average ?? "N/A";
   return parent.append(card);
 }
 
 //////////for loading the initial items(the first items)
 function loadInitailItems() {
-  let shows = JSON.parse(localStorage.getItem("data"));
+  let shows = getStoredShows();
+  if (!shows || !shows.length) return;
+  parent.innerHTML = "";
   let counter = 0;
   for (const { name, genres, rating, image, id } of shows) {
     if (counter < initialItems) {
@@ -72,13 +91,14 @@ function loadInitailItems() {
     }
     counter += 1;
   }
+  loadMoreButton.style.display = shows.length > initialItems ? "block" : "none";
+  nextPage(document.querySelectorAll(".parent-col"));
 }
-
-loadInitailItems();
 
 /////////loading function to load data when load button got clicked
 async function loadData() {
-  let shows = JSON.parse(localStorage.getItem("data"));
+  let shows = getStoredShows();
+  if (!shows.length) return;
   let currentItems = document.querySelectorAll(".card-one").length;
   let counter = 0;
 
@@ -99,23 +119,64 @@ async function loadData() {
 
 loadMoreButton.addEventListener("click", loadData);
 
+//////////trending
+function showTrending() {
+  const shows = getStoredShows();
+  if (!shows.length) {
+    getData().then((data) => {
+      if (data) {
+        localStorage.setItem("data", JSON.stringify(data));
+        showTrending();
+      }
+    });
+    return;
+  }
+
+  const trendingShows = shows
+    .filter(({ rating }) => rating && rating.average)
+    .sort((a, b) => b.rating.average - a.rating.average)
+    .slice(0, initialItems);
+
+  parent.innerHTML = "";
+  trendingShows.forEach(({ name, genres, rating, image, id }) => {
+    create(name, genres, rating, image, id);
+  });
+  loadMoreButton.style.display = "none";
+  nextPage(document.querySelectorAll(".parent-col"));
+}
+
+trendingLink?.addEventListener("click", (event) => {
+  event.preventDefault();
+  showTrending();
+});
+
 /////////search live
 const searchInput = selectedElement("#search-form");
 searchInput.addEventListener("keyup", search);
 function search(e) {
-  let inputValue = e.target.value.toLowerCase().trim();
-  let names = document.querySelectorAll("h5.name");
-  names.forEach((name) => {
-    if (name.textContent.toLowerCase().includes(inputValue)) {
-      name.parentElement.parentElement.style.display = "block";
-    } else {
-      name.parentNode.parentNode.style.display = "none";
-    }
+  const inputValue = e.target.value.toLowerCase().trim();
+  const shows = getStoredShows();
+  if (!shows.length) return;
+
+  if (!inputValue) {
+    loadInitailItems();
+    return;
+  }
+
+  const matches = shows.filter(({ name }) =>
+    name.toLowerCase().includes(inputValue)
+  );
+
+  parent.innerHTML = "";
+  matches.forEach(({ name, genres, rating, image, id }) => {
+    create(name, genres, rating, image, id);
   });
+
+  loadMoreButton.style.display = "none";
+  nextPage(document.querySelectorAll(".parent-col"));
 }
 
 /////////////////set id
-const cards = document.querySelectorAll(".parent-col");
 function nextPage(cardsParent) {
   return cardsParent.forEach((card) => {
     card.addEventListener("click", () => {
@@ -126,5 +187,3 @@ function nextPage(cardsParent) {
     });
   });
 }
-
-nextPage(cards);

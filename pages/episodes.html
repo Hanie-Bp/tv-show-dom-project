@@ -29,37 +29,24 @@
           href="../index.html"
           ><i class="bi bi-house-door-fill"></i>Home</a
         >
-        <a
-          class="d-flex flex-column justify-content-center text-white text-decoration-none align-items-center"
-          href=""
-          ><i class="bi bi-fire"></i>Trending</a
-        >
-        <a
-          class="d-flex flex-column justify-content-center text-white text-decoration-none align-items-center"
-          href=""
-          ><i class="bi bi-heart"></i>Favorite</a
-        >
-        <a
-          class="d-flex flex-column justify-content-center text-white text-decoration-none align-items-center"
-          href=""
-          ><i class="bi bi-person-circle"></i>Login</a
-        >
       </nav>
     </div>
 
     <header
-      class="d-flex justify-content-center align-items-center position-fixed w-100 z-index top-0 col-11"
+      class="d-flex justify-content-center align-items-center position-fixed w-100 z-index top-0 col-11 margin-header bg-base"
     >
       <section
-        class="d-flex flex-column justify-content-center align-items-center z-index width-header py-4 bg-base"
+        class="d-flex flex-column justify-content-center align-items-center z-index py-4 bg-base"
       >
         <nav
-          class="container-height d-flex nav-header align-items-center justify-content-between py-3"
+          class="container-height d-flex align-items-center width-header justify-content-between py-3"
         >
           <h5 class="fw-bold text-white">
             <span class="text-info">TV</span>SHOW
           </h5>
-          <div class="d-flex justify-content-between flex-wrap">
+          <div
+            class="d-flex justify-content-between flex-wrap align-items-center"
+          >
             <form action="" id="select-box">
               <select
                 class="form-select size-select"
@@ -78,12 +65,19 @@
     </header>
 
     <main>
-      <section
-        class="container-xl col-8 d-flex justify-content-center align-items-center flex-wrap"
-      >
-        <div
-          class="parent row margin-top ms-3 d-flex justify-content-center g-3"
-        ></div>
+      <section class="container-xl margin-top">
+        <div class="row g-3 align-items-start">
+          <aside class="col-lg-3 col-md-4 col-12">
+            <div class="show-info shadow-sm rounded-4 p-3">
+              <!-- show meta injected via JS -->
+            </div>
+          </aside>
+          <div class="col-lg-9 col-md-8 col-12 d-flex justify-content-center">
+            <div
+              class="parent row d-flex justify-content-center g-3 col-12"
+            ></div>
+          </div>
+        </div>
       </section>
     </main>
 
